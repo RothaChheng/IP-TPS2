@@ -1,0 +1,14 @@
+version: '3.4'
+
+services:
+  iplaravel:
+    image: iplaravel
+    build:
+      context: gic2024/laravel
+      dockerfile: ./Dockerfile
+    environment:
+      NODE_ENV: development
+    ports:
+      - 8100:8100
+      - 9229:9229
+    command: ["node", "--inspect=0.0.0.0:9229", "index.js"]

@@ -30,6 +30,20 @@ services:
       MYSQL_PASSWORD: laravel
     networks:
       - laravel
+
+  db_test:
+    image: mysql:8.0
+    container_name: mysql_db_test
+    restart: always
+    environment:
+      - MYSQL_DATABASE=laravel_test
+      - MYSQL_ROOT_PASSWORD=root
+      - MYSQL_USER=laravel_test
+      - MYSQL_PASSWORD=laravel_test
+    ports:
+      - "3307:3306"
+    networks:
+      - laravel
 networks:
   laravel:
     driver: bridge

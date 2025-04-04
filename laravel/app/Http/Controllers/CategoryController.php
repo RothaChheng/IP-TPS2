@@ -16,6 +16,10 @@ class CategoryController extends Controller
         // --- Post /api/categories
         public function createCategory(Request $request){
 
+            $request->validate([
+                'name' => 'required|string|max:255',
+            ]);
+
             $category = Category::create(['name' => $request->name]);
 
             return response()->json([
@@ -44,6 +48,8 @@ class CategoryController extends Controller
             if (!$category) {
                 return response()->json(["message" => "Category not found"], 404);
             }
+
+            $request->validate(['name' => 'required|string|max:255',]);
     
             // Update the category
             $category->update(['name' => $request->name]);

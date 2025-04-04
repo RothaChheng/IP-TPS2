@@ -2,6 +2,9 @@
 
 namespace Tests\Feature;
 
+use App\Models\Category;
+use App\Models\User;
+use App\Http\Controllers\CategoryController;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\WithFaker;
 use Tests\TestCase;
@@ -40,9 +43,9 @@ class CategoryTest extends TestCase
     */
     public function test_fetch_specific_category_by_id(): void
     {
-        $category = \App\Models\Category::factory()->create();
-        $response = $this->get("/api/categories/'{$category->id}");
-        $response->assertStatus(200)->assertJsonFragment(["id" => $category->id]);
+        $category = Category::factory()->create();
+        $response = $this->get("/api/categories/{$category->id}");
+        $response->assertStatus(200)->assertJsonFragment(["id" => $category->id, "name" => $category->name,]);
     }
 
     /**
@@ -59,7 +62,7 @@ class CategoryTest extends TestCase
     */
     public function test_fetch_category_with_invalid_id(): void
     {
-        $response = $this->get("/api/categories/99999");
+        $response = $this->get("/categories/99999");
         $response->assertStatus(404);
     }
 
@@ -95,10 +98,10 @@ class CategoryTest extends TestCase
     */
     public function test_create_category_with_missing_data(): void
     {
-        $response = $this->post("/api/categories", []);
-        $response->assertStatus(422);
+        $response = $this->withoutMiddleware()->postJson("/api/categories", []);
+        $response->assertStatus(422)->assertJsonValidationErrors(["name"]);
     }
-
+    
     /**
     * Test ID: Category-006
     * Description: Verify updating an existing category
@@ -113,9 +116,17 @@ class CategoryTest extends TestCase
     */
     public function test_update_existing_category(): void
     {
-        $category = \App\Models\Category::factory()->create();
-        $response = $this->put("/api/categories/{$category->id}", ["name" => "Updated Electronics"]);
+        $category = Category::factory()->create(); //Create Category
+        
+        //Create User and Authentication
+        $user = User::factory()->create();
+        $this->actingAs($user);
+        
+        $response = $this->patchJson("/api/categories/{$category->id}", ["name" => "Updated Electronics"]);
+
         $response->assertStatus(200)->assertJsonFragment(["name" => "Updated Electronics"]);
+
+        $this->assertDatabaseHas('categories',["id"=>$category->id, "name" => "Updated Electronics"]);
     }
 
     /**
@@ -132,7 +143,7 @@ class CategoryTest extends TestCase
     */
     public function test_update_category_with_invalid_id(): void
     {
-        $response = $this->put("/api/categories/99999", ["name" => "Invalid"]);
+        $response = $this->patch("/categories/99999", ["name" => "Invalid"]);
         $response->assertStatus(404);
     }
 
@@ -150,9 +161,16 @@ class CategoryTest extends TestCase
     */
     public function test_delete_existing_category(): void
     {
-        $category = \App\Models\Category::factory()->create();
-        $response = $this->delete("/api/categories/{$category->id}");
-        $response->assertStatus(200);
+        $category = Category::factory()->create();
+
+        $user = User::factory()->create();
+        $this->actingAs($user);
+        
+        $response = $this->deleteJson("/api/categories/{$category->id}");
+
+        $response->assertStatus(200)->assertJson(["message" => "Category deleted successfully"]);
+        
+        $this->assertDatabaseMissing('categories', ["id" => $category->id]);
     }
 
     /**
@@ -187,8 +205,18 @@ class CategoryTest extends TestCase
     */
     public function test_fetch_categories_performance(): void
     {
-        $response = $this->get("/api/categories");
+        Category::factory()->count(10)->create();
+
+        $startTime = microtime(true);
+
+        $response = $this->getJson("api/categories");
+
+        $endTime = microtime(true);
+
+        $responseTime = ($endTime - $startTime) * 1000; // Convert to milliseconds
+       
         $response->assertStatus(200);
-        $this->assertLessThan(500, $response->baseResponse->getDuration());
+       
+        $this->assertLessThan(500, $responseTime,"API response took too long: {$responseTime}ms");
     }
 }

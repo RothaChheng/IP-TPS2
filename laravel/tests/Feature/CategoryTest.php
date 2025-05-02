@@ -89,10 +89,10 @@ class CategoryTest extends TestCase
     * Description: Verify creating a category with missing data
     * Precondition: None
     * Test Steps: 1. Send a POST request to /categories without required fields
-    *             2. Check if the response status is 400
+    *             2. Check if the response status is 422
     * Test Data: { "name": "" }
-    * Expected Result: The response status should be 400
-    * Actual Result: The response status is 400
+    * Expected Result: The response status should be 422
+    * Actual Result: The response status is 422
     * Status: Passed
     * Remark: None
     */
@@ -208,13 +208,11 @@ class CategoryTest extends TestCase
         Category::factory()->count(10)->create();
 
         $startTime = microtime(true);
-
         $response = $this->getJson("api/categories");
 
         $endTime = microtime(true);
 
         $responseTime = ($endTime - $startTime) * 1000; // Convert to milliseconds
-       
         $response->assertStatus(200);
        
         $this->assertLessThan(500, $responseTime,"API response took too long: {$responseTime}ms");

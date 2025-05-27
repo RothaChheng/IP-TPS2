@@ -1,4 +1,5 @@
 import { defineStore } from "pinia";
+import axios from "axios";
 
 export const useTodoStore = defineStore("todo", {
   state: () => ({
@@ -9,49 +10,45 @@ export const useTodoStore = defineStore("todo", {
   },
   actions: {
     async fetchTodos() {
-      await new Promise((resolve) => {
-        setTimeout(() => {
-          resolve([
-            {
-              id: 1,
-              name: "Clean house",
-              description: "cleaning house in detail .....",
-              createdAt: "2024-15-07 07:50:00",
-              completedAt: null,
-            },
-            {
-              id: 2,
-              name: "Do homework",
-              description: "Instruction on doing homework ....",
-              createdAt: "2024-05-07 08:00:00",
-              completedAt: "2024-05-07 08:10:00",
-            },
-          ]);
-        }, 1000);
-      }).then((todos) => (this.todos = todos));
+      try {
+        const response = await axios.get("http://localhost:3100/tasks");
+        this.todos = response.data;
+      } catch (error) {
+        console.error("Failed to fetch todos:", error);
+        // fallback to localStorage
+        this.loadFromLocalStorage();
+      }
     },
     toggleStatus(id) {
       const foundIndex = this.todos.findIndex((t) => t.id == id);
       if (foundIndex >= 0) {
-        if (this.todos[foundIndex].completedAt != null) {
-          this.todos[foundIndex].completedAt = null;
-        } else {
-          this.todos[foundIndex].completedAt = new Date().toISOString();
-        }
+        const todo = this.todos[foundIndex];
+        todo.completedAt = todo.completedAt ? null : new Date().toISOString();
+        this.saveToLocalStorage();
       }
     },
     addTodo(todo) {
       this.todos.push({
-        id: this.todos.length + 1,
+        id: Date.now(),
         name: todo,
         description: "description",
         createdAt: new Date().toISOString(),
         completedAt: null,
       });
-      this.todos = JSON.parse(JSON.stringify(this.todos));
+      this.saveToLocalStorage();
     },
     clearAll() {
       this.todos = [];
+      this.saveToLocalStorage();
+    },
+    saveToLocalStorage() {
+      localStorage.setItem("todos", JSON.stringify(this.todos));
+    },
+    loadFromLocalStorage() {
+      const stored = localStorage.getItem("todos");
+      if (stored) {
+        this.todos = JSON.parse(stored);
+      }
     },
   },
 });

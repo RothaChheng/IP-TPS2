@@ -1,14 +1,15 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Task } from './task.entity';
 
 @Injectable()
 export class TasksService {
+  tasks: any;
 
   constructor(
     @InjectRepository(Task)
-    private tasksRepo: Repository<Task>,
+    private tasksRepo: Repository<any>,
   ) {}
 
   create(taskData: Partial<Task>) {
@@ -20,8 +21,16 @@ export class TasksService {
     return this.tasksRepo.find({ relations: ['user'] });
   }
 
-  findOne(id: number) {
-    return this.tasksRepo.findOne({ where: { id }, relations: ['user'] });
+  async findOne(id: number) {
+    const task = await this.tasksRepo.findOne({
+      where: { id: id },
+      relations: ['user'],
+    });
+    
+    if (!task) {
+      throw new NotFoundException(`Task with id ${id} not found`);
+    }
+    return task;
   }
 
   async update(id: number, updateData: Partial<Task>) {
